@@ -12,14 +12,14 @@ output: html_document
 This is an R Markdown document to describe the work done on the Machine Learning course project.
 ## Data Cleaning and Exploration
 
+One may gather the data by using the following block of code: 
 
-## Model building
-
-```{r, echo=FALSE, message=FALSE, cache=TRUE}
+```{r}
 library(caret)
 library(AppliedPredictiveModeling)
 library(rattle)
 library(rpart.plot)
+library(corrplot)
 
 trainURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 testURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
@@ -33,45 +33,40 @@ download.file(testURL, testdest, method = "curl")
 testdata <- read.csv(testdest, sep = ",")
 ```
 
+## Model building and Cross Validation
+
+Given the discrete values in the classe variable, a random forest will be used to build the model. To be able to evaluate model efficacy, a training and a test set are to be developed to allow for an effective cross validation. I chose to use 70% of data for training, and 30% for validation.
+
 ```{r}
-na.omit(traindata)
+clean <- na.omit(traindata)
 inTrain <- createDataPartition(traindata$classe, p = .7, list = FALSE)
 trainMod <- traindata[inTrain,]
 validMod <- traindata[-inTrain,]
+```
 
+It can be observed that many of the columns or sensor variables are not returning valid data. As such, a model should be developed only by valid data that may effectively influence the model and not increase the complexity unnecessarily.
+
+```{r}
 trainRF <- train(classe ~ accel_belt_x + accel_belt_y + magnet_arm_x + 
-                   accel_belt_z + total_accel_arm + roll_dumbbell + pitch_dumbbell + 
-                   yaw_dumbbell + roll_belt + pitch_belt + yaw_belt +
-                   total_accel_belt + gyros_belt_x +gyros_belt_y +
-                   gyros_belt_z + roll_arm + pitch_arm + yaw_arm +
-                   gyros_arm_x + gyros_arm_y + gyros_arm_z +
-                   accel_arm_x + accel_arm_y + accel_arm_z +
-                   magnet_belt_z + magnet_belt_y + magnet_belt_x +
-                   magnet_arm_x + magnet_arm_y + magnet_arm_z +
-                   total_accel_dumbbell + gyros_dumbbell_x +
-                   gyros_dumbbell_y + gyros_dumbbell_z + 
-                   accel_dumbbell_x + accel_dumbbell_y + accel_dumbbell_z +
-                   magnet_dumbbell_x + magnet_dumbbell_y + magnet_dumbbell_z +
-                   roll_forearm + pitch_forearm + yaw_forearm + total_accel_forearm +
-                   gyros_forearm_x + gyros_forearm_y + gyros_forearm_z + accel_forearm_x + 
-                   accel_forearm_y + accel_forearm_z + magnet_forearm_x + magnet_forearm_y +
-                   magnet_forearm_z
+                  accel_belt_z + total_accel_arm + roll_dumbbell + pitch_dumbbell 
+                  + yaw_dumbbell + roll_belt + pitch_belt + yaw_belt 
+                  + total_accel_dumbbell +total_accel_forearm +total_accel_belt 
                  ,method="rpart",data=trainMod)
 
-fancyRpartPlot(trainRF$finalModel)
 ```
 
-## Cross Validation
+Upon creation of the model, it can then be viewed:
 
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
+```{r}
+fancyRpartPlot(trainRF$finalModel, sub = "Graphical Illustration of Model")
+# plot(trainRF$finalModel, uniform=T) 
+# text(trainRF$finalModel, cex=0.8)
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ## Expected Error
+
+Now that the model has been created, it can be checked for accuracy. In this case, let's use a confusion matrix and then assess overall model accuracy.
+
 
 ```{r}
 validationTest <- predict(trainRF, validMod)
@@ -79,3 +74,5 @@ confusionMatrix(validationTest, validMod$classe)
 
 validationPred <- predict(trainRF, testdata)
 ```
+
+It can be observed that the model itself does not have a high degree of accuracy. This is likely due to two factors. First, the data should be cleaned more effectively and second, perhaps more input parameters should be used, or a different model should be used.
