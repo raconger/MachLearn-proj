@@ -3,14 +3,65 @@ title: "Machine Learning Project"
 author: "raconger"
 date: "November 22, 2015"
 output: html_document
+#    pandoc_args: [
+#      "+RTS", "-K64m",
+#      "-RTS"
+#    ]
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This is an R Markdown document to describe the work done on the Machine Learning course project.
+## Data Cleaning and Exploration
 
+
+## Model building
+
+```{r, echo=FALSE, message=FALSE, cache=TRUE}
+library(caret)
+library(AppliedPredictiveModeling)
+library(rattle)
+library(rpart.plot)
+
+trainURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testURL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+traindest <- "train.csv"
+download.file(trainURL, traindest, method = "curl")    
+traindata <- read.csv(traindest, sep = ",")
+
+testdest <- "test.csv"
+download.file(testURL, testdest, method = "curl")    
+testdata <- read.csv(testdest, sep = ",")
+```
 
 ```{r}
-summary(cars)
+na.omit(traindata)
+inTrain <- createDataPartition(traindata$classe, p = .7, list = FALSE)
+trainMod <- traindata[inTrain,]
+validMod <- traindata[-inTrain,]
+
+trainRF <- train(classe ~ accel_belt_x + accel_belt_y + magnet_arm_x + 
+                   accel_belt_z + total_accel_arm + roll_dumbbell + pitch_dumbbell + 
+                   yaw_dumbbell + roll_belt + pitch_belt + yaw_belt +
+                   total_accel_belt + gyros_belt_x +gyros_belt_y +
+                   gyros_belt_z + roll_arm + pitch_arm + yaw_arm +
+                   gyros_arm_x + gyros_arm_y + gyros_arm_z +
+                   accel_arm_x + accel_arm_y + accel_arm_z +
+                   magnet_belt_z + magnet_belt_y + magnet_belt_x +
+                   magnet_arm_x + magnet_arm_y + magnet_arm_z +
+                   total_accel_dumbbell + gyros_dumbbell_x +
+                   gyros_dumbbell_y + gyros_dumbbell_z + 
+                   accel_dumbbell_x + accel_dumbbell_y + accel_dumbbell_z +
+                   magnet_dumbbell_x + magnet_dumbbell_y + magnet_dumbbell_z +
+                   roll_forearm + pitch_forearm + yaw_forearm + total_accel_forearm +
+                   gyros_forearm_x + gyros_forearm_y + gyros_forearm_z + accel_forearm_x + 
+                   accel_forearm_y + accel_forearm_z + magnet_forearm_x + magnet_forearm_y +
+                   magnet_forearm_z
+                 ,method="rpart",data=trainMod)
+
+fancyRpartPlot(trainRF$finalModel)
 ```
+
+## Cross Validation
 
 You can also embed plots, for example:
 
@@ -19,3 +70,12 @@ plot(cars)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Expected Error
+
+```{r}
+validationTest <- predict(trainRF, validMod)
+confusionMatrix(validationTest, validMod$classe)
+
+validationPred <- predict(trainRF, testdata)
+```
